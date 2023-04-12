@@ -5,6 +5,8 @@ draft: false
 description: "关于"
 images: []
 lightgallery: true
+comment:
+  enable: false
 ---
 
 暂无
