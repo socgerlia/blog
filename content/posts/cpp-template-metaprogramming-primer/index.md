@@ -6,10 +6,10 @@ categories: [编程]
 tags: [C++, 模板元编程, Lua]
 ---
 
-## 一、序
+## 1. 序
 本文的主要内容是对C++模板元编程的初步介绍和应用，将围绕luna库进行展开
 
-### （一）luna库简要介绍
+### 1.1. luna库简要介绍
 [luna](https://github.com/trumanzhao/luna)是一个C++的lua binding库，在我们游戏服务器中有用到，它的核心代码只有一个头文件和一个源文件，实现得非常简洁和优雅。它主要应用了模板元编程的相关技巧，分析待绑定函数的签名信息，自动生成对应的lua绑定函数。阅读本文不需要提前熟悉luna库，只需对lua有初步认识即可
 
 luna库的简单应用如下所示：
@@ -34,7 +34,7 @@ void main() {
 // 3
 ```
 
-### （二）总览
+### 1.2. 总览
 本文主要分为两大部分
 
 第一部分会先介绍模板元编程的一些基础概念，基本只会涉及luna库里出现过的模板元编程技巧，不会过度深入
@@ -75,17 +75,17 @@ void main() {
 ```
 由于我们游戏服务器用到的luna库版本比较老，所以本文对luna库的分析都是基于这个比较老的版本
 
-## 二、基础概念
+## 2. 基础概念
 
-### （一）什么是模板元编程
-模板元编程（节选自wikibook）：
-```
-Template meta-programming (TMP) refers to uses of the C++ template system to perform computation at compile-time within the code. It can, for the most part, be considered to be "programming with types" — in that, largely, the "values" that TMP works with are specific C++ types.
+### 2.1. 什么是模板元编程
+{{< admonition title="模板元编程（节选自wikibook）" >}}
+Template meta-programming (TMP) refers to uses of the C++ template system to perform computation at **compile-time** within the code. It can, for the most part, be considered to be **"programming with types"** — in that, largely, the "values" that TMP works with are specific C++ types.
 
-TMP is much closer to functional programming than ordinary idiomatic C++ is. This is because 'variables' are all immutable, and hence it is necessary to use recursion rather than iteration to process elements of a set.
+TMP is much closer to **functional programming** than ordinary idiomatic C++ is. This is because 'variables' are all **immutable**, and hence it is necessary to use **recursion** rather than iteration to process elements of a set.
 
-Historically TMP is something of an accident; it was discovered during the process of standardizing the C++ language that its template system happens to be Turing-complete, i.e., capable in principle of computing anything that is computable.
-```
+Historically TMP is something of an accident; it was **discovered** during the process of standardizing the C++ language that its template system happens to be **Turing-complete**, i.e., capable in principle of computing anything that is computable.
+{{</ admonition >}}
+
 关键字：
 - 是编译期的运算
 - 主要操作的“值”是类型，类型在模板元编程里是First class citizen
@@ -93,9 +93,9 @@ Historically TMP is something of an accident; it was discovered during the pr
 - 是意外被发现的，而不是被发明出来
 - 图灵完全
 
-### （二）函数与值
+### 2.2. 函数与值
 
-#### 1、模板元函数
+#### 2.2.1. 模板元函数
 模板元函数（Template meta function）是模板元编程的核心组成部分之一，其本质其实就是模板类，只是看待模板类的角度不一样。所以：
 ```cpp
 std::vector
@@ -119,7 +119,7 @@ std::vector<int>
 
 一般来说，我们不会直接使用输出的类型，而是从输出的类型中提取有用的“数据”，这些有用“数据”也是模板元编程的核心组成部分之一
 
-#### 2、从输出类型中提取静态常量
+#### 2.2.2. 从输出类型中提取静态常量
 这里我们来实现std::is_same元函数，它的作用是判断输入的两个类型是否一样
 
 ```cpp
@@ -149,7 +149,7 @@ using Result2 = is_same<int, float>;
 static_assert(!Result2::value);
 ```
 
-#### 3、从输出类型中提取类型别名
+#### 2.2.3. 从输出类型中提取类型别名
 这里我们来实现std::add_pointer元函数，它的作用是为输入的类型T增加一级指针（以下实现不完善，例如没有考虑T为引用的情况）
 
 ```cpp
@@ -166,11 +166,65 @@ using Result = add_pointer<int>;
 static_assert(is_same<int*, Result::type>::value);
 ```
 
-#### 4、模板元编程与普通编程的差异
+#### 2.2.4. 模板元编程与普通编程的差异
+<table cellspacing="0" cellpadding="0" style="border: none;">
+<tr>
+<th>模板元编程</th>
+<th>普通编程</th>
+</tr>
+<tr>
+<td style="padding: 0; margin: 0; border: none;">
 
-### （三）条件分支
+```cpp
+// 元函数调用
+using Result = func<arg0, arg1>;
 
-#### 1、模板特化
+// 取得静态变量字段
+Result::value;
+
+// 取得类型别名或内部类
+typename Result::type;
+
+// 调用静态方法
+Result::method(...);
+
+// 取得类型别名模版或内部类模版
+typename Result::template type<T>;
+
+// Result是类型别名，无法修改
+//
+```
+
+</td>
+<td style="padding: 0; margin: 0; border: none;">
+
+```cpp
+// 函数调用
+auto result = func(arg0, arg1);
+
+// 取得成员变量字段
+result.value;
+
+// 没有直接对应
+//
+
+// 调用成员方法
+result.method(...);
+
+// 没有直接对应
+//
+
+// 重新赋值
+result = func(arg2, arg3);
+```
+
+</td>
+</tr>
+</table>
+
+### 2.3. 条件分支
+
+#### 2.3.1. 模板特化
 在模板元编程里，我们可以将模板特化看作是一种“条件分支”。上面定义的is_same就已经用了模板特化：
 ```cpp
 // 默认情况是false，相当于else分支
@@ -214,10 +268,10 @@ template <> inline std::string lua_to_native<std::string>(lua_State* L, int i) {
 - 只能指定特定类型进行特化，不能进行范围选择以及进一步的条件判断
 - 需要注意：只有模板类（以及C++14的模板变量）才有偏特化，而模板函数只有全特化。由于全特化不够灵活，所以一般来说模板函数不会选择使用模板特化来做条件判断，常用的方案有：tag dispatch、模板类静态函数、std::enable_if和if constexpr
 
-#### 2、SFINAE
-```
-Substitution Failure Is Not An Error（替换失败并非错误）
-```
+#### 2.3.2. SFINAE
+{{< admonition title="SFINAE" >}}
+**S**ubstitution **F**ailure **I**s **N**ot **A**n **E**rror（替换失败并非错误）
+{{</ admonition >}}
 所谓替换，是指将模板参数代入到模板的过程。在某些情况下，如果替换后会生成无效代码，SFINAE规则规定编译器此时不应该抛出错误，而应该继续尝试其他可用的重载版本
 
 下面的has_member_gc是从luna库抽出来的代码（经过修改，将一些高版本C++才支持的模板元编程技巧替换成更基础的技巧）：
@@ -262,7 +316,7 @@ static_assert(!has_member_gc<int>::value);
 - 对C++标准的要求很低，C++98也能使用
 - 技巧奇多，代码晦涩难懂，不建议直接使用
 
-#### 3、std::enable_if
+#### 2.3.3. std::enable_if
 std::enable_if是用SFINAE的方法，根据类型特性有条件地选择对应的重载函数
 
 下面的lua_handle_gc是从luna库抽出来的代码（未修改）：
@@ -314,7 +368,7 @@ void main() {
 - 对C++标准的要求很低，C++98也能使用
 - 因为一般来说重载函数的优先级很难控制，所以多个enable_if限定的范围不能重叠，写上去非常繁琐
 
-#### 4、if constexpr
+#### 2.3.4. if constexpr
 if constexpr可以理解成是强化版的std::enable_if。在编译期计算if语句的条件值常量，进行选择性编译
 
 用if constexpr修改一下std::enable_if的例子：
@@ -335,7 +389,7 @@ void lua_handle_gc(T* obj) {
 - 可以覆盖大部分enable_if的应用场景，甚至比enable_if做得更好
 - 需要C++17的支持
 
-### （四）模板元编程的相关技术总览
+### 2.4. 模板元编程的相关技术总览
 - C++98
   - sizeof
   - SFINAE
@@ -362,8 +416,8 @@ void lua_handle_gc(T* obj) {
 - C++20
   - Concepts
 
-## 三、luna库扩展
-### （一）支持enum
+## 3. luna库扩展
+### 3.1. 支持enum
 luna不支持enum，当待绑定的C++函数签名包含enum类型时，会编译出错：
 ```cpp
 enum Color { Red, Green, Blue };
@@ -400,10 +454,10 @@ T lua_to_native(lua_State* L, int i) {
 }
 ```
 
-### （二）支持注册lua callback
+### 3.2. 支持注册lua callback
 参照对enum的处理，这里实现的关键是在lua_to_native函数里增加对std::function的判断和处理
 
-#### 1、lua_to_native里增加对std::function的判断和处理：
+#### 3.2.1. lua_to_native里增加对std::function的判断和处理：
 ```cpp
 template <class T>
 T lua_to_native(lua_State* L, int i) {
@@ -420,7 +474,7 @@ T lua_to_native(lua_State* L, int i) {
 }
 ```
 
-#### 2、实现is_std_function元函数
+#### 3.2.2. 实现is_std_function元函数
 is_std_function元函数用来判断T是不是std::function
 ```cpp
 // 默认情况是false
@@ -436,7 +490,7 @@ struct is_std_function<std::function<Ret(Args...)>> {
 };
 ```
 
-#### 3、实现lua_function_adapter函数对象
+#### 3.2.3. 实现lua_function_adapter函数对象
 lua_function_adapter是一个函数对象，当它被调用时，会调用到预先注册好的lua函数里
 ```cpp
 // 这个类用来保存lua主线程lua_State以及lua callback在注册表的位置
@@ -514,7 +568,7 @@ struct lua_function_adapter<std::function<Ret(Args...)>> {
 };
 ```
 
-#### 4、应用示例
+#### 3.2.4. 应用示例
 ```cpp
 using Callback = std::function<std::string(int, float)>;
 
@@ -559,8 +613,8 @@ void main() {
 // Callback result : I'm C++ callback
 ```
 
-## 四、进阶
-### (一) lua callback支持返回多个值
+## 4. 进阶
+### 4.1. lua callback支持返回多个值
 应用示例
 ```cpp
 using Callback = std::function<std::tuple<int, float, std::string>(int, float)>;
@@ -646,7 +700,7 @@ struct lua_function_adapter<std::function<Ret(Args...)>> {
 };
 ```
 
-### (二) 编译器只支持C++11时的替换方案：不使用if constexpr，改用tag dispatch
+### 4.2. 编译器只支持C++11时的替换方案：不使用if constexpr，改用tag dispatch
 ```cpp
 template <class T>
 struct tag {};

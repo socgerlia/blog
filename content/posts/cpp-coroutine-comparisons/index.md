@@ -16,24 +16,25 @@ tags: [C++, 协程]
 
 - 有栈协程库的共享栈并不是一个很好的方案，需要注意局部变量的使用，严重时会导致crash
 
-- 直接看[总结](#五总结)
+- 直接看[总结](#5-总结)
 
-## 一、序
+## 1. 序
 
-### （一）简介
+### 1.1. 简介
 
-本文的主要内容是对C++几个协程库的基础协程功能进行易用性、健壮性和性能上的对比。这里的基础协程功能是指协程的创建、切换和销毁等，而不包括协程的调度、管理、同步或任何业务相关的功能。引用flare协程库文档里的[一段话](https://git.woa.com/ads/flare/blob/master/flare/doc/fiber.md)：
+本文的主要内容是对C++几个协程库的基础协程功能进行易用性、健壮性和性能上的对比。这里的基础协程功能是指协程的创建、切换和销毁等，而不包括协程的调度、管理、同步或任何业务相关的功能。引用flare协程库文档里的说明<!--[一段话](https://git.woa.com/ads/flare/blob/master/flare/doc/fiber.md)-->：
 
-```
-fiber
+{{< admonition title="fiber" >}}
 是一种轻量的线程，也常被称为“纤程”、“绿色线程”等。其作为一个调度实体接收运行时的调度。
 为方便使用，我们也提供了用于fiber的Mutex、ConditionVariable、this_fiber::、fiber局部存储等基础设施以供使用。
-使用fiber编程时思想与使用pthread编程相同，均是使用传统的普通函数（这与下文中的coroutine形成对比）编写同步代码，并由运行时/操作系统负责在fiber/pthread阻塞时进行调度。
 
-coroutine
+使用fiber编程时思想与使用pthread编程相同，均是使用传统的普通函数（这与下文中的coroutine形成对比）编写同步代码，并由运行时/操作系统负责在fiber/pthread阻塞时进行调度。
+{{</ admonition >}}
+
+{{< admonition title="coroutine" >}}
 是一种可以被挂起、恢复（多进多出）的函数（“subroutine”）。其本身是一种被泛化了的函数。
 由于协程本质上依然是一个函数，因此其不涉及调度、锁、条件变量、局部存储等问题。
-```
+{{</ admonition >}}
 
 所以本文的讨论只涉及后者
 
@@ -75,11 +76,13 @@ coroutine
 
 - 【有栈】[Boost.Fiber](https://www.boost.org/doc/libs/1_77_0/libs/fiber/doc/html/index.html)：基于Boost.Context实现的协程调度、管理、同步等功能，属于上面所说的“纤程”库。实现了多种高级抽象，如：mutex、condition variable、barrier、channel、future、fiber local storage，还有NUMA架构优化和GPU计算
 
-- 【有栈】[flare](https://git.woa.com/ads/flare)：腾讯AMS广告营销服务线开发的公共组件，是腾讯TRPC里使用的协程库，协程方面的功能与Boost.Fiber类似，在性能和业务开发上有更多的思考。底层使用的也是Boost.Context
+- 【有栈】flare<!--[flare](https://git.woa.com/ads/flare)-->：腾讯AMS广告营销服务线开发的公共组件，是腾讯TRPC里使用的协程库，协程方面的功能与Boost.Fiber类似，在性能和业务开发上有更多的思考。底层使用的也是Boost.Context
 
+<!--
 - 【有栈】JLib：来自腾讯天美J1/F1工作室，具有很久的历史，使用共享栈，与业务强相关
+-->
 
-### （二）示例说明：echo_server
+### 1.2. 示例说明：echo_server
 
 我们将设计一个echo_server示例以展示各个协程库的简单使用方法，如下图所示：
 
@@ -114,9 +117,9 @@ struct session {
 };
 ```
 
-## 二、无栈协程
+## 2. 无栈协程
 
-### （一）基于switch语句的协程
+### 2.1. 基于switch语句的协程
 ```cpp
 struct simple_stackless_coroutine_session : session {
   buffer buf_; // 必须放这里
@@ -148,7 +151,7 @@ CONS：
 
 - 很原始，繁琐，非常难用
 
-### （二）Boost.Asio无栈协程
+### 2.2. Boost.Asio无栈协程
 ```cpp
 struct asio_stackless_coroutine_session : session {
   buffer buf_;
@@ -228,7 +231,7 @@ CONS：
 
 - 由于本质上是一堆switch和for语句，需要非常注意临时局部变量和break的使用
 
-### （三）C++20协程
+### 2.3. C++20协程
 ```cpp
 struct cpp20_coroutine_session : session {
   // C++20协程要求的定义，阅读本文无需过度关注
@@ -408,7 +411,7 @@ CONS:
 
 - 必须明确使用几个关键字来yield（这是为了让编译器做分析），无法做到业务无侵入
 
-### （四）cppcoro
+### 2.4. cppcoro
 
 ```cpp
 struct cppcoro_task_session : session {
@@ -445,9 +448,9 @@ CONS:
 
 - 作者的工作中心可能已经在libunifex上了，cppcoro已有一段时间没维护
 
-## 三、有栈协程
+## 3. 有栈协程
 
-### （一）Boost.Context
+### 3.1. Boost.Context
 
 Boost.Context有三种实现：fcontext_t、posix ucontext_t、WinFiber，通过编译选项来控制，它们的差别请参见[这里](https://www.boost.org/doc/libs/1_77_0/libs/context/doc/html/context/ff/implementations__fcontext_t__ucontext_t_and_winfiber.html)。本文用的是性能最好的fcontext_t
 
@@ -502,7 +505,7 @@ CONS：
 
 - 需要大量用到移动语义（boost::context::fiber是move only的）
 
-### （二）libcopp coroutine_context
+### 3.2. libcopp coroutine_context
 
 libcopp coroutine_context底层使用了Boost.Context fcontext_t里的其中两个接口make_fcontext和jump_fcontext，并封装了一些人性化的接口
 
@@ -534,7 +537,7 @@ PROS：
 
 - Boost.Context带来的优势 (?)
 
-### （三）libco
+### 3.3. libco
 
 ```cpp
 struct libco_session : session {
@@ -578,7 +581,7 @@ PROS：
 
 - 微信的光环
 
-### （四）stack unwind问题
+### 3.4. stack unwind问题
 
 运行echo_server，用echo_client向其建立1个连接发送任意数据随后关闭连接，查看echo_server的日志
 
@@ -629,7 +632,7 @@ fiber::~fiber() {
 
 libcopp coroutine_context只使用了Boost.Context的make_fcontext和jump_fcontext这两个接口，所以协程被强制销毁时没有正确的stack unwind
 
-### （五）共享栈问题
+### 3.5. 共享栈问题
 
 echo_server的逻辑非常简单，只是将接收到的数据原样返回，理论上echo_client发送和收到的数据是一样的，但我们还是加了一个检查
 
@@ -664,7 +667,7 @@ int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeou
 
 实际上libgo这个协程库原本也是有共享栈的支持，但在[2.4版本](https://github.com/yyzybb537/libgo/releases/tag/v2.4-stable)移除了它
 
-## 四、Benchmark
+## 4. Benchmark
 
 测试条件：
 
@@ -674,7 +677,7 @@ int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeou
 | RAM              | 256 GB                                                                     |
 | 有栈协程的栈大小 | 128 KB（这是很多协程库的默认值，实测中发现设置更小会很容易crash）          |
 
-### （一）协程的创建、切换和销毁
+### 4.1. 协程的创建、切换和销毁
 
 测试项目说明：
 
@@ -723,7 +726,7 @@ int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeou
 
 - 当libco开启了共享栈，create和destroy耗时都有降低（少了独立栈的内存分配和释放），但是switch耗时增加了，这是因为共享栈在上下文切换时，需要额外做栈的copy
 
-### （二）Skynet 1M concurrency microbenchmark
+### 4.2. Skynet 1M concurrency microbenchmark
 
 [项目地址](https://github.com/atemerev/skynet)
 
@@ -752,7 +755,7 @@ int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeou
 | python gevent              | 12.67 s   |              |
 | python tornado             | 17.09 s   |              |
 
-## 五、总结
+## 5. 总结
 
 |                           | 易用性 | 健壮性 | 性能 |
 | ------------------------- | ------ | ------ | ---- |

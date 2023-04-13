@@ -96,14 +96,14 @@ post = ""
 name = "Categories"
 url = "/categories/"
 title = "Categories"
-[[menu.main]]
-weight = 5
-identifier = "about"
-pre = ""
-post = ""
-name = "About"
-url = "/about/"
-title = "About"
+# [[menu.main]]
+# weight = 5
+# identifier = "about"
+# pre = ""
+# post = ""
+# name = "About"
+# url = "/about/"
+# title = "About"
 
 [params]
 # site default theme ["auto", "light", "dark"]
