@@ -605,13 +605,13 @@ darkTheme = "github-dark"
 # You can refer to the official documentation of giscus to use the following configuration.
 # 你可以参考官方文档来使用下列配置
 enable = true
-repo = "https://github.com/socgerlia/blog"
-repoId = ""
+repo = "socgerlia/blog"
+repoId = "MDEwOlJlcG9zaXRvcnkyNTA5Njc5NTg="
 category = "Announcements"
-categoryId = ""
+categoryId = "DIC_kwDODvV3ls4CVvUX"
 # automatically adapt the current theme i18n configuration when empty
 # 为空时自动适配当前主题 i18n 配置
-lang = ""
+lang = "zh-CN"
 mapping = "pathname"
 reactionsEnabled = "1"
 emitMetadata = "0"
