@@ -277,7 +277,7 @@ struct cpp20_coroutine_session : session {
 
 C++20协程是无栈协程，为什么buf可以放在协程函数体里呢？带着这个疑问，我们来查看协程函数体被编译后的汇编代码：
 
-```asm
+```nasm
 ;;; 创建协程状态
 cpp20_coroutine_session::coroutine_body():
         push    r14
